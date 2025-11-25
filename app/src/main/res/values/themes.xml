@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <style name="Base.Theme.VillageManagement" parent="Theme.Material3.DayNight.NoActionBar">
+    <!-- Base application theme using AppCompat for compatibility -->
+    <style name="Theme.VillageManagement" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <!-- Primary brand color -->
         <item name="colorPrimary">@color/primary</item>
-        <item name="colorOnPrimary">@color/white</item>
-        <item name="colorSecondary">@color/secondary</item>
-        <item name="colorOnSecondary">@color/white</item>
+        <item name="colorPrimaryDark">@color/primary_variant</item>
+        <item name="colorAccent">@color/secondary</item>
+        <!-- Status bar color -->
         <item name="android:statusBarColor">@color/primary</item>
+        <!-- Customize your theme here -->
     </style>
-
-    <style name="Theme.VillageManagement" parent="Base.Theme.VillageManagement" />
 </resources>
