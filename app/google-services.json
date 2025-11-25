@@ -1,0 +1,29 @@
+{
+    "project_info": {
+        "project_number": "8220929196",
+        "project_id": "village-management-8e8f9",
+        "storage_bucket": "village-management-8e8f9.firebasestorage.app"
+    },
+    "client": [
+        {
+            "client_info": {
+                "mobilesdk_app_id": "1:8220929196:android:fed18e18c6893d987e0309",
+                "android_client_info": {
+                    "package_name": "com.villagemanagement"
+                }
+            },
+            "oauth_client": [],
+            "api_key": [
+                {
+                    "current_key": "AIzaSyBEsp5Qo5jkvad7b8XioYQfQLtG7ZPvcYU"
+                }
+            ],
+            "services": {
+                "appinvite_service": {
+                    "other_platform_oauth_client": []
+                }
+            }
+        }
+    ],
+    "configuration_version": "1"
+}
