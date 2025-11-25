@@ -43,7 +43,7 @@ class HelpRepository @Inject constructor(
     }
 
     fun observeHelpRequestsByVillage(villageId: String): Flow<Resource<List<HelpRequest>>> = callbackFlow {
-        trySend(Resource.Loading())
+        trySend(Resource.Loading)
         val listener = helpCollection
             .whereEqualTo("villageId", villageId)
             .orderBy("createdAt", Query.Direction.DESCENDING)

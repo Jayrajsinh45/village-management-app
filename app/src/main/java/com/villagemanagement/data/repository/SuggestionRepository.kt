@@ -29,7 +29,7 @@ class SuggestionRepository @Inject constructor(
     }
 
     fun observeSuggestionsByVillage(villageId: String): Flow<Resource<List<Suggestion>>> = callbackFlow {
-        trySend(Resource.Loading())
+        trySend(Resource.Loading)
         val listener = suggestionCollection
             .whereEqualTo("villageId", villageId)
             .orderBy("createdAt", Query.Direction.DESCENDING)
