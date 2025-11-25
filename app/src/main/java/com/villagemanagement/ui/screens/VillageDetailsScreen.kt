@@ -253,6 +253,7 @@ fun InfoRow(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ActionCard(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
