@@ -45,13 +45,20 @@ class AuthRepository @Inject constructor(
                 .build()
             firebaseUser.updateProfile(profileUpdates).await()
 
+            // Assign SUPER_ADMIN role for the predefined admin email
+            val assignedRole = if (email.trim().equals("jayrajsinhbarad555@gmail.com", ignoreCase = true)) {
+                UserRole.SUPER_ADMIN
+            } else {
+                role
+            }
+
             // Create user document in Firestore
             val user = User(
                 id = firebaseUser.uid,
                 email = email,
                 phone = phone,
                 name = name,
-                role = role.name,
+                role = assignedRole.name,
                 villageId = villageId
             )
 
