@@ -60,6 +60,17 @@ fun VillageListScreen(
                     actionIconContentColor = MaterialTheme.colorScheme.onPrimary
                 )
             )
+        },
+        floatingActionButton = {
+            if (user?.getUserRole() == UserRole.SUPER_ADMIN) {
+                FloatingActionButton(
+                    onClick = onNavigateToAddVillage,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Add Village")
+                }
+            }
         }
     ) { paddingValues ->
         Column(
