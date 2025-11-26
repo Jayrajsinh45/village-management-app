@@ -12,7 +12,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -23,10 +22,10 @@ import com.villagemanagement.ui.viewmodel.VillageViewModel
 @Composable
 fun AddVillageScreen(
     onNavigateBack: () -> Unit,
-    viewModel: VillageViewModel = hiltViewModel()
+    villageViewModel: VillageViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
-    val villageState by viewModel.villageState.collectAsState()
+    val villageState by villageViewModel.villageState.collectAsState()
 
     var name by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
@@ -34,17 +33,9 @@ fun AddVillageScreen(
     var area by remember { mutableStateOf("") }
     var adminName by remember { mutableStateOf("") }
     var adminContact by remember { mutableStateOf("") }
-    var locationLat by remember { mutableStateOf("") }
-    var locationLng by remember { mutableStateOf("") }
+    var location by remember { mutableStateOf("") }
 
-    var isLoading by remember { mutableStateOf(false) }
-
-    LaunchedEffect(villageState.error) {
-        villageState.error?.let {
-            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
-            viewModel.clearError()
-        }
-    }
+    var isSubmitting by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -63,145 +54,126 @@ fun AddVillageScreen(
             )
         }
     ) { paddingValues ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                label = { Text("Village Name") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
-            )
-
-            OutlinedTextField(
-                value = description,
-                onValueChange = { description = it },
-                label = { Text("Description") },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 3,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                OutlinedTextField(
-                    value = population,
-                    onValueChange = { if (it.all { char -> char.isDigit() }) population = it },
-                    label = { Text("Population") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next)
-                )
-
-                OutlinedTextField(
-                    value = area,
-                    onValueChange = { area = it },
-                    label = { Text("Area (sq km)") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next)
-                )
-            }
-
-            OutlinedTextField(
-                value = adminName,
-                onValueChange = { adminName = it },
-                label = { Text("Admin Name") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
-            )
-
-            OutlinedTextField(
-                value = adminContact,
-                onValueChange = { adminContact = it },
-                label = { Text("Admin Contact") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Next)
-            )
-
-            Text(
-                text = "Location (Optional)",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(top = 8.dp)
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                OutlinedTextField(
-                    value = locationLat,
-                    onValueChange = { locationLat = it },
-                    label = { Text("Latitude") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next)
-                )
-
-                OutlinedTextField(
-                    value = locationLng,
-                    onValueChange = { locationLng = it },
-                    label = { Text("Longitude") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Button(
-                onClick = {
-                    if (name.isBlank() || description.isBlank() || population.isBlank()) {
-                        Toast.makeText(context, "Please fill required fields", Toast.LENGTH_SHORT).show()
-                        return@Button
-                    }
-
-                    isLoading = true
-                    val village = Village(
-                        name = name,
-                        description = description,
-                        population = population.toIntOrNull() ?: 0,
-                        area = area,
-                        adminName = adminName,
-                        adminContact = adminContact,
-                        location = com.villagemanagement.data.model.VillageLocation(
-                            latitude = locationLat.toDoubleOrNull() ?: 0.0,
-                            longitude = locationLng.toDoubleOrNull() ?: 0.0
-                        )
-                    )
-
-                    viewModel.createVillage(village) { success, _ ->
-                        isLoading = false
-                        if (success) {
-                            Toast.makeText(context, "Village added successfully", Toast.LENGTH_SHORT).show()
-                            onNavigateBack()
-                        }
-                    }
-                },
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                enabled = !isLoading
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = MaterialTheme.colorScheme.onPrimary
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Village Name") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Description") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    OutlinedTextField(
+                        value = population,
+                        onValueChange = { if (it.all { char -> char.isDigit() }) population = it },
+                        label = { Text("Population") },
+                        modifier = Modifier.weight(1f),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true
                     )
-                } else {
-                    Text("Add Village")
+
+                    OutlinedTextField(
+                        value = area,
+                        onValueChange = { area = it },
+                        label = { Text("Area (sq km)") },
+                        modifier = Modifier.weight(1f),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true
+                    )
+                }
+
+                OutlinedTextField(
+                    value = adminName,
+                    onValueChange = { adminName = it },
+                    label = { Text("Village Admin Name") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                OutlinedTextField(
+                    value = adminContact,
+                    onValueChange = { if (it.all { char -> char.isDigit() }) adminContact = it },
+                    label = { Text("Admin Contact Number") },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                    singleLine = true
+                )
+
+                OutlinedTextField(
+                    value = location,
+                    onValueChange = { location = it },
+                    label = { Text("Location (Lat, Lng)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text("e.g. 23.0225, 72.5714") },
+                    singleLine = true
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(
+                    onClick = {
+                        if (name.isBlank() || population.isBlank()) {
+                            Toast.makeText(context, "Name and Population are required", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+
+                        isSubmitting = true
+                        val village = Village(
+                            name = name,
+                            description = description,
+                            population = population.toIntOrNull() ?: 0,
+                            area = area,
+                            adminName = adminName,
+                            adminContact = adminContact,
+                            location = location
+                        )
+
+                        villageViewModel.createVillage(village) { success, message ->
+                            isSubmitting = false
+                            if (success) {
+                                Toast.makeText(context, "Village added successfully!", Toast.LENGTH_SHORT).show()
+                                onNavigateBack()
+                            } else {
+                                Toast.makeText(context, "Error: $message", Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    enabled = !isSubmitting
+                ) {
+                    if (isSubmitting) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    } else {
+                        Text("Add Village")
+                    }
                 }
             }
         }
