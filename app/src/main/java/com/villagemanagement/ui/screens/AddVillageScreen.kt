@@ -141,6 +141,17 @@ fun AddVillageScreen(
                         }
 
                         isSubmitting = true
+                        // Parse location string "lat, lng"
+                        val locationParts = location.split(",").map { it.trim() }
+                        val lat = locationParts.getOrNull(0)?.toDoubleOrNull() ?: 0.0
+                        val lng = locationParts.getOrNull(1)?.toDoubleOrNull() ?: 0.0
+                        
+                        val villageLocation = com.villagemanagement.data.model.VillageLocation(
+                            latitude = lat,
+                            longitude = lng,
+                            address = "" // Optional: could add address field later
+                        )
+
                         val village = Village(
                             name = name,
                             description = description,
@@ -148,7 +159,7 @@ fun AddVillageScreen(
                             area = area,
                             adminName = adminName,
                             adminContact = adminContact,
-                            location = location
+                            location = villageLocation
                         )
 
                         villageViewModel.createVillage(village) { success, message ->

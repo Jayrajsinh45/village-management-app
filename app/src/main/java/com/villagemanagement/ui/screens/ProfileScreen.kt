@@ -112,9 +112,9 @@ fun ProfileScreen(
                             .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        ProfileDetailItem(label = "Phone", value = user.phoneNumber)
+                        ProfileDetailItem(label = "Phone", value = user.phone)
                         ProfileDetailItem(label = "Village ID", value = user.villageId ?: "Not Assigned")
-                        ProfileDetailItem(label = "User ID", value = user.userId)
+                        ProfileDetailItem(label = "User ID", value = user.id)
                     }
                 }
             }
