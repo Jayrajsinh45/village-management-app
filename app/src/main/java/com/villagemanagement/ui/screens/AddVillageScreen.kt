@@ -1,5 +1,6 @@
 package com.villagemanagement.ui.screens
 
+import android.app.Activity
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -7,6 +8,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,6 +17,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.google.android.libraries.places.api.Places
+import com.google.android.libraries.places.api.model.Place
+import com.google.android.libraries.places.widget.Autocomplete
+import com.google.android.libraries.places.widget.model.AutocompleteActivityMode
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import com.villagemanagement.BuildConfig
 import com.villagemanagement.data.model.Village
 import com.villagemanagement.ui.viewmodel.VillageViewModel
 
@@ -33,9 +42,45 @@ fun AddVillageScreen(
     var area by remember { mutableStateOf("") }
     var adminName by remember { mutableStateOf("") }
     var adminContact by remember { mutableStateOf("") }
-    var location by remember { mutableStateOf("") }
+    var latitude by remember { mutableStateOf("") }
+    var longitude by remember { mutableStateOf("") }
+    var address by remember { mutableStateOf("") }
 
     var isSubmitting by remember { mutableStateOf(false) }
+
+    // Initialize Places API
+    LaunchedEffect(Unit) {
+        if (!Places.isInitialized()) {
+            Places.initialize(context, BuildConfig.MAPS_API_KEY)
+        }
+    }
+
+    // Places Autocomplete Launcher
+    val autocompleteLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val place = result.data?.let { Autocomplete.getPlaceFromIntent(it) }
+            place?.let {
+                // Auto-fill location data
+                it.name?.let { placeName -> name = placeName }
+                it.latLng?.let { latLng ->
+                    latitude = latLng.latitude.toString()
+                    longitude = latLng.longitude.toString()
+                }
+                it.address?.let { addr -> address = addr }
+                
+                Toast.makeText(context, "Location selected: ${it.name}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    fun openPlacesPicker() {
+        val fields = listOf(Place.Field.ID, Place.Field.NAME, Place.Field.LAT_LNG, Place.Field.ADDRESS)
+        val intent = Autocomplete.IntentBuilder(AutocompleteActivityMode.OVERLAY, fields)
+            .build(context)
+        autocompleteLauncher.launch(intent)
+    }
 
     Scaffold(
         topBar = {
@@ -66,6 +111,50 @@ fun AddVillageScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                // Search Location Button
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    ) {
+                        Text(
+                            text = "📍 Search Location",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = { openPlacesPicker() },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.LocationOn, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Search Village on Google Maps")
+                        }
+                        if (address.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Selected: $address",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+                }
+
+                Divider()
+                Text(
+                    text = "Or enter details manually:",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
@@ -122,12 +211,34 @@ fun AddVillageScreen(
                     singleLine = true
                 )
 
-                OutlinedTextField(
-                    value = location,
-                    onValueChange = { location = it },
-                    label = { Text("Location (Lat, Lng)") },
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("e.g. 23.0225, 72.5714") },
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    OutlinedTextField(
+                        value = latitude,
+                        onValueChange = { latitude = it },
+                        label = { Text("Latitude") },
+                        modifier = Modifier.weight(1f),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        singleLine = true
+                    )
+
+                    OutlinedTextField(
+                        value = longitude,
+                        onValueChange = { longitude = it },
+                        label = { Text("Longitude") },
+                        modifier = Modifier.weight(1f),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        singleLine = true
+                    )
+                }
+
+                OutlinedTextField(
+                    value = address,
+                    onValueChange = { address = it },
+                    label = { Text("Address") },
+                    modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
 
@@ -140,16 +251,20 @@ fun AddVillageScreen(
                             return@Button
                         }
 
+                        if (latitude.isBlank() || longitude.isBlank()) {
+                            Toast.makeText(context, "Please select a location or enter coordinates", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+
                         isSubmitting = true
-                        // Parse location string "lat, lng"
-                        val locationParts = location.split(",").map { it.trim() }
-                        val lat = locationParts.getOrNull(0)?.toDoubleOrNull() ?: 0.0
-                        val lng = locationParts.getOrNull(1)?.toDoubleOrNull() ?: 0.0
+                        
+                        val lat = latitude.toDoubleOrNull() ?: 0.0
+                        val lng = longitude.toDoubleOrNull() ?: 0.0
                         
                         val villageLocation = com.villagemanagement.data.model.VillageLocation(
                             latitude = lat,
                             longitude = lng,
-                            address = "" // Optional: could add address field later
+                            address = address
                         )
 
                         val village = Village(
