@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Village Management - Web Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, getDocs, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBEsp5Qo5jkvad7b8XioYQfQLtG7ZPvcYU",
+            authDomain: "village-management-8e8f9.firebaseapp.com",
+            projectId: "village-management-8e8f9",
+            storageBucket: "village-management-8e8f9.firebasestorage.app",
+            messagingSenderId: "8220929196",
+            appId: "1:8220929196:web:placeholder" // Using placeholder, usually works for Firestore if API key is valid
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // DOM Elements
+        const loginSection = document.getElementById('loginSection');
+        const dashboardSection = document.getElementById('dashboardSection');
+        const villageList = document.getElementById('villageList');
+        const addVillageForm = document.getElementById('addVillageForm');
+        const loginForm = document.getElementById('loginForm');
+        const userEmailSpan = document.getElementById('userEmail');
+
+        // Auth State Listener
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                loginSection.classList.add('hidden');
+                dashboardSection.classList.remove('hidden');
+                userEmailSpan.textContent = user.email;
+                loadVillages();
+            } else {
+                loginSection.classList.remove('hidden');
+                dashboardSection.classList.add('hidden');
+            }
+        });
+
+        // Login Handler
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+            } catch (error) {
+                alert("Login Failed: " + error.message);
+            }
+        });
+
+        // Logout Handler
+        window.logout = () => signOut(auth);
+
+        // Load Villages
+        async function loadVillages() {
+            villageList.innerHTML = '<p class="text-gray-500">Loading...</p>';
+            try {
+                const querySnapshot = await getDocs(collection(db, "villages"));
+                villageList.innerHTML = '';
+                if (querySnapshot.empty) {
+                    villageList.innerHTML = '<p class="text-gray-500">No villages found.</p>';
+                    return;
+                }
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const el = document.createElement('div');
+                    el.className = 'bg-white p-4 rounded shadow mb-4 border-l-4 border-green-500';
+                    el.innerHTML = `
+                        <h3 class="font-bold text-lg">${data.name}</h3>
+                        <p class="text-gray-600">${data.description}</p>
+                        <div class="mt-2 text-sm text-gray-500 grid grid-cols-2 gap-2">
+                            <span>👥 Pop: ${data.population}</span>
+                            <span>📏 Area: ${data.area}</span>
+                            <span>👤 Admin: ${data.adminName}</span>
+                            <span>📍 Loc: ${data.location?.latitude}, ${data.location?.longitude}</span>
+                        </div>
+                    `;
+                    villageList.appendChild(el);
+                });
+            } catch (error) {
+                console.error("Error loading villages:", error);
+                villageList.innerHTML = `<p class="text-red-500">Error loading data: ${error.message}</p>`;
+            }
+        }
+
+        // Add Village Handler
+        addVillageForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const submitBtn = e.target.querySelector('button');
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Adding...";
+
+            try {
+                const name = document.getElementById('vName').value;
+                const desc = document.getElementById('vDesc').value;
+                const pop = parseInt(document.getElementById('vPop').value);
+                const area = document.getElementById('vArea').value;
+                const admin = document.getElementById('vAdmin').value;
+                const contact = document.getElementById('vContact').value;
+                const lat = parseFloat(document.getElementById('vLat').value);
+                const lng = parseFloat(document.getElementById('vLng').value);
+
+                await addDoc(collection(db, "villages"), {
+                    name: name,
+                    description: desc,
+                    population: pop,
+                    area: area,
+                    adminName: admin,
+                    adminContact: contact,
+                    location: {
+                        latitude: lat,
+                        longitude: lng,
+                        address: ""
+                    },
+                    isActive: true,
+                    createdAt: serverTimestamp(),
+                    updatedAt: serverTimestamp()
+                });
+
+                alert("Village Added Successfully!");
+                addVillageForm.reset();
+                loadVillages();
+            } catch (error) {
+                alert("Error adding village: " + error.message);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = "Add Village";
+            }
+        });
+    </script>
+</head>
+<body class="bg-gray-100 min-h-screen font-sans">
+
+    <!-- Login Section -->
+    <div id="loginSection" class="flex items-center justify-center min-h-screen">
+        <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+            <h1 class="text-2xl font-bold mb-6 text-center text-green-600">Village Admin Login</h1>
+            <form id="loginForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Email</label>
+                    <input type="email" id="email" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Password</label>
+                    <input type="password" id="password" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" required>
+                </div>
+                <button type="submit" class="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700">Login</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Dashboard Section -->
+    <div id="dashboardSection" class="hidden">
+        <nav class="bg-green-600 text-white p-4 shadow">
+            <div class="container mx-auto flex justify-between items-center">
+                <h1 class="text-xl font-bold">Village Management Dashboard</h1>
+                <div class="flex items-center gap-4">
+                    <span id="userEmail" class="text-sm opacity-90"></span>
+                    <button onclick="logout()" class="bg-white text-green-600 px-3 py-1 rounded text-sm font-medium">Logout</button>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container mx-auto p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            <!-- Add Village Form -->
+            <div class="md:col-span-1">
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h2 class="text-xl font-bold mb-4">Add New Village</h2>
+                    <form id="addVillageForm" class="space-y-3">
+                        <input type="text" id="vName" placeholder="Village Name" class="w-full p-2 border rounded" required>
+                        <textarea id="vDesc" placeholder="Description" class="w-full p-2 border rounded"></textarea>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="number" id="vPop" placeholder="Population" class="w-full p-2 border rounded" required>
+                            <input type="text" id="vArea" placeholder="Area (sq km)" class="w-full p-2 border rounded">
+                        </div>
+                        <input type="text" id="vAdmin" placeholder="Admin Name" class="w-full p-2 border rounded">
+                        <input type="text" id="vContact" placeholder="Admin Contact" class="w-full p-2 border rounded">
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="number" step="any" id="vLat" placeholder="Latitude" class="w-full p-2 border rounded" value="23.0">
+                            <input type="number" step="any" id="vLng" placeholder="Longitude" class="w-full p-2 border rounded" value="72.0">
+                        </div>
+                        <button type="submit" class="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700">Add Village</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Village List -->
+            <div class="md:col-span-2">
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold">Village List</h2>
+                        <button onclick="location.reload()" class="text-sm text-blue-600 hover:underline">Refresh</button>
+                    </div>
+                    <div id="villageList" class="space-y-4 max-h-[600px] overflow-y-auto">
+                        <!-- Villages will appear here -->
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</body>
+</html>
